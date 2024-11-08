@@ -48,6 +48,17 @@ app.post("/alumnos", async (req, res) => {
   }
 });
 
+app.delete("/alumnos/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection("alumnos").doc(id).delete();
+    res.status(200).send("Alumno eliminado exitosamente");
+  } catch (error) {
+    res.status(500).send("Error al eliminar alumno: " + error.message);
+  }
+});
+
+
 // Inicializar el servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

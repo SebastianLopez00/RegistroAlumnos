@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro de Alumnos</title>
+
+  <!-- Firebase SDKs -->
+  <script defer src="/__/firebase/11.0.1/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/11.0.1/firebase-firestore-compat.js"></script>
+  <script defer src="/__/firebase/init.js?useEmulator=false"></script>
+
+  <style>
+    body {
+      background: #9886db;
+      color: rgba(0, 0, 0, 0.87);
+      font-family: Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #form-container {
+      background: #bcaeee;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 32px 24px;
+      border-radius: 3px;
+    }
+    h2 {
+      font-weight: bold;
+      color: #0390d6;
+    }
+    label {
+      font-size: 14px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 16px;
+      border: 1px solid #f3f2f2;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #000000;
+      color: white;
+      padding: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid black;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="form-container">
+    <h2>Registro de Alumnos</h2>
+    <form id="registroAlumno">
+      <label for="nombre">Nombre</label>
+      <input type="text" id="nombre" required>
+
+      <label for="apellido">Apellido</label>
+      <input type="text" id="apellido" required>
+
+      <label for="edad">Edad</label>
+      <input type="number" id="edad" required>
+
+      <label for="idAlumno">DNI</label>
+      <input type="text" id="idAlumno" required>
+
+      <label for="materia">Materia</label>
+      <select id="materia" required>
+        <option value="Matemáticas"> Matemáticas (Cupo: 15)</option>
+        <option value="Lenguaje No SQL"> Lenguaje No SQL (Cupo: 20)</option>
+        <option value="Programacion Movil"> Programacion Movil (Cupo: 7)</option>
+        <!-- Puedes agregar más materias y cambiar los cupos -->
+      </select>
+
+      <button type="button" id="agregarAlumno">Agregar Alumno</button>
+    </form>
+    
+    <!-- Tabla para mostrar los alumnos agregados -->
+    <table id="tablaAlumnos">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Apellido</th>
+          <th>Edad</th>
+          <th>ID Alumno</th>
+          <th>Materia</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <button id="registrarAlumnos">Registrar Todos los Alumnos</button>
+    <p id="mensaje"></p>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Inicializa Firestore
+      const db = firebase.firestore(); // Asegúrate que Firestore esté inicializado correctamente.
+
+      let alumnos = []; // Lista para almacenar los alumnos temporalmente
+
+      // Referencias a los elementos del DOM
+      const form = document.getElementById('registroAlumno');
+      const tablaAlumnos = document.getElementById('tablaAlumnos').querySelector('tbody');
+      const mensaje = document.getElementById('mensaje');
+
+      // Función para mostrar los alumnos registrados en Firestore
+      const mostrarAlumnos = async () => {
+        tablaAlumnos.innerHTML = ''; // Limpia la tabla antes de cargar los datos
+
+        try {
+          const snapshot = await db.collection('alumnos').get();
+          snapshot.forEach(doc => {
+            const alumno = doc.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${alumno.nombre}</td>
+              <td>${alumno.apellido}</td>
+              <td>${alumno.edad}</td>
+              <td>${alumno.idAlumno}</td>
+              <td>${alumno.materia}</td>
+              <td><button class="eliminar" data-id="${doc.id}">Eliminar</button></td>
+            `;
+            tablaAlumnos.appendChild(row);
+          });
+        } catch (error) {
+          console.error('Error al cargar alumnos:', error);
+        }
+      };
+
+      // Cargar los alumnos registrados al cargar la página
+      mostrarAlumnos();
+
+      // Maneja el evento de agregar un alumno
+      document.getElementById('agregarAlumno').addEventListener('click', () => {
+        // Obtiene los valores del formulario
+        const nombre = document.getElementById('nombre').value;
+        const apellido = document.getElementById('apellido').value;
+        const edad = document.getElementById('edad').value;
+        const idAlumno = document.getElementById('idAlumno').value;
+        const materia = document.getElementById('materia').value;
+
+        // Verifica que los campos no estén vacíos
+        if (!nombre || !apellido || !edad || !idAlumno || !materia) {
+          mensaje.textContent = 'Todos los campos son obligatorios';
+          return;
+        }
+
+        // Agrega el alumno a la lista temporal
+        alumnos.push({ nombre, apellido, edad: parseInt(edad), idAlumno, materia });
+
+        // Actualiza la tabla con el nuevo alumno
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${nombre}</td>
+          <td>${apellido}</td>
+          <td>${edad}</td>
+          <td>${idAlumno}</td>
+          <td>${materia}</td>
+          <td><button class="eliminar">Eliminar</button></td>
+        `;
+        tablaAlumnos.appendChild(row);
+
+        // Limpia el formulario
+        form.reset();
+        mensaje.textContent = '';
+      });
+
+      // Maneja el evento de eliminar un alumno
+      tablaAlumnos.addEventListener('click', (e) => {
+        if (e.target.classList.contains('eliminar')) {
+          const row = e.target.parentElement.parentElement;
+          const index = Array.from(tablaAlumnos.children).indexOf(row);
+          alumnos.splice(index, 1); // Elimina el alumno de la lista
+          row.remove(); // Elimina la fila de la tabla
+        }
+      });
+
+      // Maneja el evento de registrar todos los alumnos
+      document.getElementById('registrarAlumnos').addEventListener('click', async () => {
+        try {
+          for (const alumno of alumnos) {
+            // Guarda cada alumno en Firestore
+            await db.collection('alumnos').add(alumno);
+          }
+          mensaje.textContent = 'Alumnos registrados exitosamente';
+          alumnos = []; // Limpia la lista de alumnos
+          tablaAlumnos.innerHTML = ''; // Limpia la tabla
+          
+          // Recarga la tabla con los alumnos desde Firestore
+          mostrarAlumnos();
+        } catch (error) {
+          console.error('Error al registrar alumnos:', error);
+          mensaje.textContent = 'Error al registrar alumnos';
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
